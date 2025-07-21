@@ -3,28 +3,39 @@
 @section('title', 'Agendar Serviço')
 
 @section('content')
-    <h2 class="text-xl font-bold mb-4">Agendar Serviço</h2>
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold">Agendar Serviço</h2>
+
+        {{-- Botão visível apenas para admins --}}
+        @auth
+            @if(auth()->user()->is_admin)
+                <a href="{{ route('services.create') }}"
+                   class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
+                    ➕ Adicionar Serviço
+                </a>
+            @endif
+        @endauth
+    </div>
 
     {{-- Formulário de agendamento --}}
     <form id="agendamento-form" action="{{ route('agendamentos.store') }}" method="POST" class="space-y-4">
         @csrf
-
         <div>
             <label for="nome" class="block font-medium">Nome:</label>
             <input type="text" id="nome" name="nome" value="{{ old('nome') }}" required
-                class="w-full border border-gray-300 rounded px-3 py-2">
+                   class="w-full border border-gray-300 rounded px-3 py-2">
         </div>
 
         <div>
             <label for="email" class="block font-medium">E-mail:</label>
             <input type="email" id="email" name="email" value="{{ old('email') }}" required
-                class="w-full border border-gray-300 rounded px-3 py-2">
+                   class="w-full border border-gray-300 rounded px-3 py-2">
         </div>
 
         <div>
             <label for="servico_id" class="block font-medium">Serviço:</label>
             <select id="servico_id" name="servico_id" required
-                class="w-full border border-gray-300 rounded px-3 py-2">
+                    class="w-full border border-gray-300 rounded px-3 py-2">
                 <option value="">-- Selecione --</option>
                 @foreach($servicos as $servico)
                     <option value="{{ $servico->id }}" {{ old('servico_id') == $servico->id ? 'selected' : '' }}>
@@ -37,19 +48,19 @@
         <div>
             <label for="data" class="block font-medium">Data:</label>
             <input type="date" id="data" name="data" value="{{ old('data') }}" required
-                class="w-full border border-gray-300 rounded px-3 py-2">
+                   class="w-full border border-gray-300 rounded px-3 py-2">
         </div>
 
         <div>
             <label for="horario" class="block font-medium">Horário:</label>
             <input type="time" id="horario" name="horario" value="{{ old('horario') }}" required
-                class="w-full border border-gray-300 rounded px-3 py-2">
+                   class="w-full border border-gray-300 rounded px-3 py-2">
         </div>
 
-        <div class="flex items-center gap-4">
-            <button type="submit"
-                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">Agendar</button>
-        </div>
+        <button type="submit"
+                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+            Agendar
+        </button>
     </form>
 
     <hr class="my-8">
@@ -87,15 +98,21 @@
                         <tr class="border-t border-gray-300">
                             <td class="py-2 px-4 border-r border-gray-300">{{ $agendamento->nome }}</td>
                             <td class="py-2 px-4 border-r border-gray-300">{{ $agendamento->email }}</td>
-                            <td class="py-2 px-4 border-r border-gray-300">{{ $agendamento->service->name ?? 'Serviço não encontrado' }}</td>
-                            <td class="py-2 px-4 border-r border-gray-300">{{ \Carbon\Carbon::parse($agendamento->data)->format('d/m/Y') }}</td>
+                            <td class="py-2 px-4 border-r border-gray-300">
+                                {{ $agendamento->service->name ?? 'Serviço não encontrado' }}
+                            </td>
+                            <td class="py-2 px-4 border-r border-gray-300">
+                                {{ \Carbon\Carbon::parse($agendamento->data)->format('d/m/Y') }}
+                            </td>
                             <td class="py-2 px-4 border-r border-gray-300">{{ $agendamento->horario }}</td>
                             <td class="py-2 px-4 text-center">
-                                <form action="{{ route('agendamentos.destroy', $agendamento->id) }}" method="POST" onsubmit="return confirm('Confirma exclusão?')">
+                                <form action="{{ route('agendamentos.destroy', $agendamento->id) }}"
+                                      method="POST"
+                                      onsubmit="return confirm('Confirma exclusão?')">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit"
-                                        class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition">
+                                            class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition">
                                         Excluir
                                     </button>
                                 </form>
@@ -118,9 +135,9 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            var calendarEl = document.getElementById('calendar');
+            const calendarEl = document.getElementById('calendar');
 
-            var calendar = new FullCalendar.Calendar(calendarEl, {
+            const calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
                 locale: 'pt-br',
                 events: "{{ route('eventos') }}"
@@ -130,7 +147,7 @@
 
             const form = document.getElementById('agendamento-form');
 
-            form.addEventListener('submit', function(e) {
+            form.addEventListener('submit', function (e) {
                 e.preventDefault();
 
                 const formData = new FormData(form);
@@ -151,14 +168,12 @@
                     form.reset();
                     alert(data.message || 'Agendamento realizado com sucesso!');
                     calendar.refetchEvents();
-                    // Para atualizar a lista, recarregue a página:
-                    location.reload();
+                    location.reload(); // recarrega para atualizar a lista
                 })
                 .catch(async errorResponse => {
                     if (errorResponse.json) {
                         const errorData = await errorResponse.json();
-                        let errors = errorData.errors || {};
-                        let messages = Object.values(errors).flat().join('\n');
+                        let messages = Object.values(errorData.errors || {}).flat().join('\n');
                         alert('Erro(s):\n' + messages);
                     } else {
                         alert('Erro ao enviar o formulário.');
