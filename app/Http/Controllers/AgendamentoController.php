@@ -8,11 +8,13 @@ use App\Models\Agendamento;
 
 class AgendamentoController extends Controller
 {
-    // Exibe o formulário de agendamento junto com o calendário
+    // Exibe o formulário de agendamento, calendário e lista de agendamentos juntos
     public function create()
     {
         $servicos = Service::all();
-        return view('agendamentos.create', compact('servicos'));
+        $agendamentos = Agendamento::with('service')->orderBy('data', 'asc')->get();
+
+        return view('agendamentos.create', compact('servicos', 'agendamentos'));
     }
 
     // Salva o agendamento no banco de dados
@@ -37,7 +39,7 @@ class AgendamentoController extends Controller
         return redirect()->route('agendamentos.create')->with('success', 'Agendamento realizado com sucesso!');
     }
 
-    // Lista todos os agendamentos
+    // Lista todos os agendamentos (não usada, mas pode ser útil)
     public function index()
     {
         $agendamentos = Agendamento::with('service')->orderBy('data', 'asc')->get();
@@ -51,6 +53,6 @@ class AgendamentoController extends Controller
         $agendamento = Agendamento::findOrFail($id);
         $agendamento->delete();
 
-        return redirect()->route('agendamentos.index')->with('success', 'Agendamento excluído com sucesso!');
+        return redirect()->route('agendamentos.create')->with('success', 'Agendamento excluído com sucesso!');
     }
 }
