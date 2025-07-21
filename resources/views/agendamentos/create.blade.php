@@ -5,24 +5,8 @@
 @section('content')
     <h2>Agendar Serviço</h2>
 
-    {{-- Mensagem de sucesso --}}
-    @if(session('success'))
-        <p style="color: green;">{{ session('success') }}</p>
-    @endif
-
-    {{-- Exibe erros de validação --}}
-    @if($errors->any())
-        <div style="color: red;">
-            <ul>
-                @foreach ($errors->all() as $erro)
-                    <li>{{ $erro }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
     {{-- Formulário de agendamento --}}
-    <form action="{{ route('agendamentos.store') }}" method="POST">
+    <form id="agendamento-form" action="{{ route('agendamentos.store') }}" method="POST">
         @csrf
 
         <label for="nome">Nome:</label><br>
@@ -52,4 +36,75 @@
 
     <br>
     <a href="{{ route('agendamentos.index') }}" class="button">Ver Agendamentos</a>
+
+    <hr>
+
+    <h2>Calendário de Agendamentos</h2>
+
+    <div id="calendar" style="max-width: 900px; margin: 40px auto;"></div>
+
+    {{-- Importa os estilos do FullCalendar --}}
+    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/main.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/main.min.css" rel="stylesheet" />
+
+    {{-- Importa os scripts do FullCalendar --}}
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.8/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.8/locales/pt-br.global.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var calendarEl = document.getElementById('calendar');
+
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'pt-br',
+                events: "{{ route('eventos') }}"
+            });
+
+            calendar.render();
+
+            // Captura o submit do formulário para enviar via AJAX
+            const form = document.getElementById('agendamento-form');
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault(); // previne submit normal
+
+                const formData = new FormData(form);
+
+                fetch("{{ route('agendamentos.store') }}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) throw response;
+                    return response.json();
+                })
+                .then(data => {
+                    // Limpa os campos do formulário
+                    form.reset();
+
+                    // Exibe mensagem de sucesso
+                    alert(data.message || 'Agendamento realizado com sucesso!');
+
+                    // Recarrega os eventos no calendário
+                    calendar.refetchEvents();
+                })
+                .catch(async errorResponse => {
+                    if (errorResponse.json) {
+                        const errorData = await errorResponse.json();
+                        let errors = errorData.errors || {};
+                        let messages = Object.values(errors).flat().join('\n');
+                        alert('Erro(s):\n' + messages);
+                    } else {
+                        alert('Erro ao enviar o formulário.');
+                    }
+                });
+            });
+        });
+    </script>
 @endsection
